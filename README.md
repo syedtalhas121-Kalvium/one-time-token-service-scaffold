@@ -1,28 +1,21 @@
-# One-Time Token Service — Starter Scaffold
+# One-Time Token Service
 
-Build a single-use, expiring token service backed by Redis. You implement two
-functions and a test that proves a token can be used **at most once**, even when
-five consumers hit it at the same instant.
-
-This scaffold gives you the plumbing (dependencies, `.env`, file shapes). Your
-job is the two functions and the concurrency test — see the `TODO`s in the code.
+A single-use, expiring token service backed by Redis.
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env      # then set REDIS_URL (local Docker Redis from LU 4.0.1)
-docker start redis-m4     # make sure your Redis is running
+cp .env.example .env
+# Set REDIS_URL in .env to your Redis connection URL.
+docker start redis-m4
 ```
 
-## What to implement
+## Implementation
 
-- **`token-service.js`**
-  - `issueToken(payload, ttlSeconds)` — random id + JSON payload + atomic `SET ... EX`.
-  - `consumeToken(tokenId)` — atomic `GETDEL`; return `{ ok, payload }` / `{ ok: false, reason }`.
-- **`test.js`**
-  - Issue one token, fire **5 `consumeToken` calls at once** with `Promise.all`,
-    assert **exactly one** succeeds.
+- `issueToken(payload, ttlSeconds)` generates a cryptographically random 128-bit token ID, JSON-serializes the payload, and stores it with atomic `SET ... EX ... NX`.
+- `consumeToken(tokenId)` uses atomic `GETDEL`, returning `{ ok: true, payload }` for a valid token or `{ ok: false, reason: "invalid" }` for a missing, expired, or already-consumed token.
+- `test.js` fires five consumers concurrently with `Promise.all` and asserts that exactly one succeeds.
 
 ## Run the test
 
@@ -30,9 +23,11 @@ docker start redis-m4     # make sure your Redis is running
 npm test
 ```
 
-You should see `winners: 1` and `PASS: token was single-use.`
+Expected result when run against a working Redis instance:
 
-## Submit
+```
+winners: 1
+PASS: token was single-use.
+```
 
-Open a Pull Request containing your `token-service.js`, `test.js`, and paste the
-test output (showing `winners: 1`) in the PR description. Submit the PR link.
+The test must be run with Redis available; the expected output above is not a claim that a remote Redis run has already been performed.
